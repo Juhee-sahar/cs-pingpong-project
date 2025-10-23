@@ -1,0 +1,85 @@
+# -------------------------------
+# Visual Studio / C# 공통 무시 규칙
+# -------------------------------
+
+# 사용자 설정 파일
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# 빌드 결과물
+**/[Bb]in/
+**/[Oo]bj/
+**/[Ll]og/
+**/[Ll]ogs/
+**/[Dd]ebug*/
+**/[Rr]elease*/
+**/[Xx]64/
+**/[Xx]86/
+**/[Aa][Rr][Mm]/
+**/[Aa][Rr][Mm]64/
+**/[Pp]ublish/
+
+# Visual Studio 관련
+.vs/
+.vscode/
+.idea/
+*.dbmdl
+*.cache
+*.pdb
+*.obj
+*.exe
+*.dll
+*.tmp
+*.bak
+*.swp
+
+# 테스트 결과물
+[Tt]est[Rr]esult*/
+*.coverage
+*.coveragexml
+
+# 패키지 관련
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+
+# 백업 파일
+*.old
+*.orig
+*.log
+
+# 운영체제별 임시 파일
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# 기타 환경별 캐시
+_ReSharper*/
+*_ReSharper.Caches/
+*.tsscache
+
+# ASP.NET / 웹 프로젝트 관련 (있을 경우)
+**/node_modules/
+**/bower_components/
+*.bundle
+*.min.css
+*.min.js
+*.map
+
+# -------------------------------
+# 커스텀 프로젝트 예외 (원하면 여기에)
+# -------------------------------
+
+# 예: 특정 프로젝트 폴더는 무시하지 않기
+# !HappyBirdWindowsForm/Assets/

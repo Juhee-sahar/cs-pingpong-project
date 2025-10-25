@@ -7,7 +7,9 @@ namespace GameServer
     public partial class Form1 : Form
     {
         TCPSocketServer mServer;
-        GameManager mManager;   
+        GameManager mManager;
+
+
         public Form1()
         {
             InitializeComponent();
@@ -38,7 +40,7 @@ namespace GameServer
         private async void BtnAcceptIncoming_Click(object sender, System.EventArgs e)
         {
             UpdateUiConnectedState(true);
-
+            AppendGameLog("[서버 연결]");
             await mServer.StartServerListeningAsync();
         }
 
@@ -46,7 +48,7 @@ namespace GameServer
         private void BtnDisconnectServer_Click(object sender, EventArgs e)
         {
             mServer.StopServer();
-            AppendGameLog("서버 중지됨.");
+            AppendGameLog("[서버 중지]");
             UpdateUiConnectedState(false);
         }
 
@@ -72,7 +74,7 @@ namespace GameServer
                 if (opponent != "")
                 {
                     // 상대방에게 게임 승리 메세지 전송
-                    _ = mServer.SendToClient(opponent, "[02]WIN_BY_DISCONNECT");
+                    _ = mServer.SendToClient(opponent, "[05]WIN_BY_DISCONNECT");
 
                     mManager.DeleteActiveMatches(ip);
                     AppendGameLog($"[{ip}] 접속 종료로 {opponent} 승리");
@@ -84,66 +86,105 @@ namespace GameServer
         // 클라이언트 메세지
         private void OnClientMessageReceived(string ip, string msg)
         {
-            string code = msg.Substring(0, 4); // [01], [02], [03]
+            string code = msg.Substring(0, 4); // [01], [02], [03], [04] ...
 
 
-            // 게임시작 요청
+            // === [01] 매칭 요청 ===
             if (code == "[01]")
             {
-                AppendGameLog($"매칭 요청 : [{ip}]");
+                AppendGameLog($"[매칭 요청] {ip}");
                 // 게임 시작 요청하고,, 매칭 될 때까지 대기
-                var (p1, p2) = mManager.HandleActiveMatches(ip);
+                var (p1, p2, session) = mManager.HandleActiveMatches(ip);
 
                 // 게임 시작 알림, 로그
-                if(p1 !=null && p2 != null)
+                if (p1 != null && p2 != null && session != null)
                 {
-                    _ = mServer.SendToClient(p1, "MATCHED");
-                    _ = mServer.SendToClient(p2, "MATCHED");
+                    _ = mServer.SendToClient(p1, "MATCHED|LEFT");
+                    _ = mServer.SendToClient(p2, "MATCHED|RIGHT");
 
-                    AppendGameLog($"매칭 완료 : [{p1}], [{p2}]");
+                    AppendGameLog($"[매칭 완료] {p1} - {p2}");
+
+                    // 게임 시작
+                    StartGameLoop(session);
                 }
             }
-            // 게임 정상적으로 끝
+            // === [02] 플레이어 입력 (UP/DOWN) ===
             else if (code == "[02]")
             {
-                // 먼저 승리 목표 달성한 곳에서 메세지 보낼 것
-                string opponent = mManager.HandleSearchOpponent(ip);
-                
-                if (opponent != "")
-                {
-                    _ = mServer.SendToClient(opponent, msg);
-                    mManager.DeleteActiveMatches(ip);
+                // "[02]MOVING|UP" / "[02]MOVING|DOWN" 
+                string[] parts = msg.Split('|');
 
-                    AppendGameLog($"[{ip}] 승 [{opponent}] 패");
+                if (parts.Length < 2) return;
+
+                string direction = parts[1];
+
+                var session = mManager.GetGameSession(ip);
+
+                if (session != null)
+                {
+                    session.GameState.HandlePlayerMove(ip, direction);
                 }
+
             }
-            else if (code == "[03]")
+
+
+        }
+
+        private async void StartGameLoop(GameSession session)
+        {
+            AppendGameLog($"[게임 시작] {session.PlayerLeft} : {session.PlayerRight}");
+
+            await Task.Run(async () =>
             {
-                // 대전 상대 정보
-                string opponent = mManager.HandleSearchOpponent(ip);
-
-                // 정보 있을 시
-                if (opponent != "")
+                while (!session.GameState.IsGameOver)
                 {
-                    // 상대 클라이언트에게 정보 전송
-                    _ = mServer.SendToClient(opponent, msg);
+                    session.GameState.UpdateGameState();
+
+                    string packet = session.GameState.GetGameStatePacket();
+
+                    await mServer.SendToClient(session.PlayerLeft, packet);
+                    await mServer.SendToClient(session.PlayerRight, packet);
+
+                    await Task.Delay(50);
                 }
 
-            }
+                // 게임 종료
+                string winner = session.GameState.WinnerIP;
+                string loser = session.GameState.LoserIP;
+                await mServer.SendToClient(winner, "[05]WIN");
+                await mServer.SendToClient(loser, "[05]LOSER");
 
+                AppendGameLog($"[게임 종료] {winner} WIN : LOSE {loser}");
+
+                mManager.DeleteActiveMatches(winner);
+            });
         }
 
 
         // 유저 로그 라벨에 출력
         private void AppendClientLog(string msg)
         {
-            labelClientLog.Text += msg + Environment.NewLine;
+            if (textBoxClientLog.InvokeRequired)
+            {
+                this.Invoke(new Action(() => textBoxClientLog.AppendText(msg + Environment.NewLine)));
+            }
+            else
+            {
+                textBoxClientLog.AppendText(msg + Environment.NewLine);
+            }
         }
 
         // 게임 로그 라벨에 출력
         private void AppendGameLog(string msg)
         {
-            labelGameLog.Text += msg + Environment.NewLine;
+            if (textBoxGameLog.InvokeRequired)
+            {
+                this.Invoke(new Action(() => textBoxGameLog.AppendText(msg + Environment.NewLine)));
+            }
+            else
+            {
+                textBoxGameLog.AppendText(msg + Environment.NewLine);
+            }
         }
     }
 }

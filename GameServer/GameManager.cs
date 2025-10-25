@@ -6,19 +6,30 @@ using System.Threading.Tasks;
 
 namespace GameServer
 {
+    internal class GameSession
+    {
+        public string PlayerLeft {  get; set; }
+        public string PlayerRight { get; set; }
+        public ClientGameState GameState { get; set; }  
+
+        public GameSession(string left, string right) 
+        { 
+            PlayerLeft = left;  
+            PlayerRight = right;
+            GameState = new ClientGameState(left, right);   
+        }
+    }
+
     internal class GameManager
     {
         // 대기자
-        List<string> waitingList = new();
-
+        private readonly List<string> waitingList = new();
         // 플레이어 매칭
-        Dictionary<string, string> activeMatches = new();
-
-
+        private readonly Dictionary<string, GameSession> activeGames = new();
         private readonly object lockObj = new();
 
         // 대전 상대 매치
-        public (string?, string?) HandleActiveMatches(string ip)
+        public (string?, string?, GameSession?) HandleActiveMatches(string ip)
         {
             lock (lockObj)
             {
@@ -31,46 +42,56 @@ namespace GameServer
                     string player2 = waitingList[1];
                     waitingList.RemoveRange(0, 2);
 
-                    activeMatches[player1] = player2;
-                    activeMatches[player2] = player1;
 
-                    return (player1, player2);
+                    // 여기서 left, right 지정해줘야 함
+                    // 세션
+                    GameSession session = new(player1, player2);
+
+                    activeGames[player1] = session;
+                    activeGames[player2] = session;
+
+                    return (player1, player2, session);
                 }
 
-                return (null, null); 
+                return (null, null, null); 
             }
         }
 
-        // 대전자 찾기
-        public string HandleSearchOpponent(string ip)
+        // 현재 ip의 세션 반환
+        public GameSession? GetGameSession(string ip)
         {
-
             lock (lockObj)
             {
-                if (!activeMatches.ContainsKey(ip)) return "";
-
-                // 대전자 찾기
-                string opponent = activeMatches[ip];
-
-                return opponent; 
+                if (!activeGames.ContainsKey(ip)) return null;
+                return activeGames[ip];
             }
-
         }
+
 
         // 대전 정보 삭제(대전 끝났을 시)
         public void DeleteActiveMatches(string ip)
         {
             lock (lockObj)
             {
-                if (!activeMatches.ContainsKey(ip)) return;
+                if (!activeGames.ContainsKey(ip)) return;
 
-                string opponent = activeMatches[ip];
-
-                activeMatches.Remove(ip);
-                activeMatches.Remove(opponent); 
+                var session = activeGames[ip];
+                activeGames.Remove(session.PlayerLeft);
+                activeGames.Remove(session.PlayerLeft);
             }
         }
-                
+
+        // 대전자 검색
+        public string HandleSearchOpponent(string ip)
+        {
+            lock (lockObj)
+            {
+                if (!activeGames.ContainsKey(ip)) return "";
+                var session = activeGames[ip];
+                if (session.PlayerLeft == ip) return session.PlayerRight;
+                else return session.PlayerLeft;
+            }
+        }
     }
 
 }

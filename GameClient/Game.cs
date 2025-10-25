@@ -9,98 +9,108 @@ namespace GameClient
     public partial class Game : Form
     {
         private readonly TCPSocketClient mClient;
+        private readonly bool isLeft;
 
-        int ballXspeed = 4;
-        int ballYspeed = 4;
-        int playerSpeed = 8;
         bool goDown, goUp;
+        int speed = 10;
 
-        int playerScore = 0;
-        int someoneScore = 0;
-
-        public Game(TCPSocketClient client)
+        public Game(TCPSocketClient client, bool isLeftPlayer)
         {
             InitializeComponent();
             mClient = client;
+            isLeft = isLeftPlayer;
 
             // 서버 수신 이벤트 연결
             mClient.MessageReceived += OnServerMessage;
+
+            this.KeyDown += KeyIsDown;
+            this.KeyUp += KeyIsUp;
         }
 
         private async void GameTimerEvent(object sender, EventArgs e)
         {
             // 기본 이동 로직 (본인)
-            MoveBallAndPlayer();
+            MovePlayer();
 
-            // 좌표를 서버로 전송
-            string msg = $"[03]{player.Top},{player.Left},{ball.Top},{ball.Left}";
-            await mClient.SendData(msg);
+            // 키 이동 시 "[02]MOVING|UP" / "[02]MOVING|DOWN" 전송
+            if (goUp)
+            {
+                await mClient.SendData("[02]MOVING|UP");
+            }
+            else if (goDown)
+            {
+                await mClient.SendData("[02]MOVING|DOWN");
+            }
+
         }
 
-        private void MoveBallAndPlayer()
+        private void MovePlayer()
         {
-            ball.Top += ballYspeed;
-            ball.Left += ballXspeed;
-
-            if (goDown && player.Bottom < this.ClientSize.Height)
-                player.Top += playerSpeed;
-            if (goUp && player.Top > 0)
-                player.Top -= playerSpeed;
-
-            // 충돌, 점수처리
-            if (ball.Top < 0 || ball.Bottom > this.ClientSize.Height)
-                ballYspeed = -ballYspeed;
-
-            if (ball.Left < -5)
+            if (isLeft)
             {
-                ball.Left = 300;
-                someoneScore++;
+                if (goUp && playerLeft.Top > 0)
+                    playerLeft.Top -= speed;
+                if (goDown && playerLeft.Top < this.ClientSize.Height - playerLeft.Height)
+                    playerLeft.Top += speed;
+            }
+            else
+            {
+                if (goUp && playerRight.Top > 0)
+                    playerRight.Top -= speed;
+                if (goDown && playerRight.Top < this.ClientSize.Height - playerRight.Height)
+                    playerRight.Top += speed;
             }
 
-            if (ball.Right > this.ClientSize.Width + 5)
-            {
-                ball.Left = 300;
-                playerScore++;
-
-                // 내가 5점 달성하면 승리 전송
-                if (playerScore >= 5)
-                {
-                    _ = mClient.SendData("[02]WIN");
-                    GameOver("You Win!");
-                }
-            }
         }
 
         private void OnServerMessage(string msg)
         {
-            // [03]playerX,playerY,ballX,ballY 수신 시 반영
-            if (msg.StartsWith("[03]"))
+            try
             {
-                string data = msg.Substring(4);
-                string[] parts = data.Split(',');
-
-                if (parts.Length == 4)
+                // [04]STATE|ballX,ballY,playerLeftY,playerRightY,scoreLeft,scoreRight
+                if (msg.StartsWith("[04]STATE|"))
                 {
-                    int.TryParse(parts[0], out int oppTop);
-                    int.TryParse(parts[1], out int oppLeft);
-                    int.TryParse(parts[2], out int ballTop);
-                    int.TryParse(parts[3], out int ballLeft);
+                    string data = msg.Substring(10); // [04]STATE| 제외
+                    string[] parts = data.Split(',');
 
-                    this.Invoke(new Action(() =>
+                    if (parts.Length == 6)
                     {
-                        someone.Top = oppTop;
-                        someone.Left = oppLeft;
-                        ball.Top = ballTop;
-                        ball.Left = ballLeft;
-                    }));
+                        int.TryParse(parts[0], out int ballX);
+                        int.TryParse(parts[1], out int ballY);
+                        int.TryParse(parts[2], out int playerLeftY);
+                        int.TryParse(parts[3], out int playerRightY);
+                        int.TryParse(parts[4], out int leftScore);
+                        int.TryParse(parts[5], out int rightScore);
+
+                        this.Invoke(new Action(() =>
+                        {
+                            ball.Left = ballX;
+                            ball.Top = ballY;
+                            playerLeft.Top = playerLeftY;
+                            playerRight.Top = playerRightY;
+
+                            // 점수 업데이트
+                            if (isLeft)
+                                this.Text = $"Me {leftScore} : {rightScore} Someone";
+                            else
+                                this.Text = $"Me {rightScore} : {leftScore} Someone";
+                        }));
+                    }
+
+                }
+                else if (msg.StartsWith("[05]"))
+                {
+                    if (msg.Contains("WIN_BY_DISCONNECT"))
+                        this.Invoke(new Action(() => GameOver("상대방 기권으로 승리!")));
+                    else if (msg.Contains("WIN"))
+                        this.Invoke(new Action(() => GameOver("승리!")));
+                    else if (msg.Contains("LOSER"))
+                        this.Invoke(new Action(() => GameOver("패배!")));
                 }
             }
-            else if (msg.StartsWith("[02]"))
+            catch (Exception ex)
             {
-                this.Invoke(new Action(() =>
-                {
-                    GameOver("You Lose!");
-                }));
+                Console.WriteLine("OnServerMessage 예외: " + ex.Message);
             }
         }
 
@@ -121,6 +131,11 @@ namespace GameClient
         {
             if (e.KeyCode == Keys.Down) goDown = false;
             if (e.KeyCode == Keys.Up) goUp = false;
+        }
+
+        private void playerRight_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

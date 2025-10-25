@@ -10,16 +10,18 @@ namespace GameServer
 {
     internal class ClientGameState
     {
-        // ==== 기본 필드 ====
         public string PlayerLeftIP { get; private set; }
         public string PlayerRightIP { get; private set; }
 
-        private int screenWidth = 800;
-        private int screenHeight = 480;
+        private int screenWidth = 780;
+        private int screenHeight = 430;
 
-        private int paddleHeight = 80;
+        private int paddleWidth = 40;
+        private int paddleHeight = 160;
+        private int paddleOffset = 11; // 창과의 거리
         private int paddleSpeed = 8;
 
+        private int ballSize = 40; // 공의 지름 (대략 값, 필요 시 조정)
         private int ballX;
         private int ballY;
         private int ballXSpeed;
@@ -37,7 +39,7 @@ namespace GameServer
         public string WinnerIP { get; private set; } = string.Empty;
         public string LoserIP { get; private set; } = string.Empty;
 
-        // ==== 생성자 ====
+
         public ClientGameState(string playerLeft, string playerRight)
         {
             PlayerLeftIP = playerLeft;
@@ -46,7 +48,8 @@ namespace GameServer
             ResetGame();
         }
 
-        // ==== 게임 초기화 ====
+
+        // 게임 초기화
         private void ResetGame()
         {
             playerLeftY = screenHeight / 2 - paddleHeight / 2;
@@ -60,12 +63,14 @@ namespace GameServer
 
             playerLeftScore = 0;
             playerRightScore = 0;
+
             IsGameOver = false;
+
             WinnerIP = string.Empty;
             LoserIP = string.Empty;
         }
 
-        // ==== 클라이언트 입력 반영 ====
+        // 클라이언트 입력 반영
         public void HandlePlayerMove(string playerIP, string direction)
         {
             if (playerIP == PlayerLeftIP)
@@ -84,36 +89,51 @@ namespace GameServer
             }
         }
 
-        // ==== 한 프레임(틱)마다 호출 ====
+        // 한 프레임(틱)마다 업데아투
         public void UpdateGameState()
         {
             if (IsGameOver) return;
 
-            ballX += ballXSpeed;
-            ballY += ballYSpeed;
+            int nextBallX = ballX + ballXSpeed;
+            int nextBallY = ballY + ballYSpeed;
 
-            // 벽 충돌
-            if (ballY <= 0 || ballY >= screenHeight)
-            {
-                ballYSpeed = -ballYSpeed;
-            }
+            int leftPaddleX = paddleOffset;
+            int leftPaddleRight = leftPaddleX + paddleWidth;
+            int rightPaddleX = screenWidth - paddleOffset - paddleWidth;
 
-            // 왼쪽 패들 충돌
-            if (ballX <= 20 && ballY >= playerLeftY && ballY <= playerLeftY + paddleHeight)
+            int ballCenterX = ballX + ballSize / 2;
+            int ballCenterY = ballY + ballSize / 2;
+            int nextBallCenterX = nextBallX + ballSize / 2;
+            int nextBallCenterY = nextBallY + ballSize / 2;
+
+            // ==== 왼쪽 패들 예측 충돌 ====
+            if (nextBallCenterX - ballSize / 2 <= leftPaddleRight &&
+                ballCenterY >= playerLeftY &&
+                ballCenterY <= playerLeftY + paddleHeight)
             {
                 ballXSpeed = Math.Abs(ballXSpeed);
                 RandomizeBallAngle();
             }
 
-            // 오른쪽 패들 충돌
-            if (ballX >= screenWidth - 20 && ballY >= playerRightY && ballY <= playerRightY + paddleHeight)
+            // ==== 오른쪽 패들 예측 충돌 ====
+            if (nextBallCenterX + ballSize / 2 >= rightPaddleX &&
+                ballCenterY >= playerRightY &&
+                ballCenterY <= playerRightY + paddleHeight)
             {
                 ballXSpeed = -Math.Abs(ballXSpeed);
                 RandomizeBallAngle();
             }
 
-            // 득점 체크
-            if (ballX < 0)
+            // ==== 위치 갱신 (이제 이동) ====
+            ballX = nextBallX;
+            ballY = nextBallY;
+
+            // ==== 벽 충돌 ====
+            if (ballY <= 0 || ballY + ballSize >= screenHeight)
+                ballYSpeed = -ballYSpeed;
+
+            // ==== 득점 체크 ====
+            if (ballX + ballSize < 0)
             {
                 playerRightScore++;
                 CheckGameEnd();
@@ -159,11 +179,11 @@ namespace GameServer
             }
         }
 
-        // ==== 클라이언트 전송용 문자열 생성 ====
+        // 클라이언트 전송용 문자열 생성
         public string GetGameStatePacket()
         {
-            // 예: [04]STATE|ballX,ballY,leftY,rightY
-            return $"[04]STATE|{ballX},{ballY},{playerLeftY},{playerRightY}";
+            // 예: [04]STATE|ballX,ballY,leftY,rightY,leftScore,rightScore
+            return $"[04]STATE|{ballX},{ballY},{playerLeftY},{playerRightY},{playerLeftScore},{playerRightScore}";
         }
     }
 }

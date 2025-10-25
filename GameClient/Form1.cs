@@ -76,22 +76,18 @@ namespace GameClient
 
         private void OnMessageReceived(string msg)
         {
+            // "MATCHED|LEFT" "MATCHED|RIGHT"
             if (msg.Contains("MATCHED"))
             {
-                this.Invoke(new Action(() => 
+                this.Invoke(new Action(() =>
                     {
-                        mGameForm = new Game(mClient);
+                        bool isLeft = msg.Contains("LEFT");
+
+                        mGameForm = new Game(mClient, isLeft);
                         mGameForm.Show();
                     }));
             }
-            else if (msg.Contains("WIN_BY_DISCONNECT"))
-            {
-                this.Invoke(new Action(() =>
-                {
-                    MessageBox.Show("»ó´ë¹æ ¿¬°á ²÷±è. ½Â¸®!", "°ÔÀÓ Á¾·á");
-                    mGameForm?.Close();
-                }));
-            }
+
 
         }
         private void OnDisconnected()
@@ -102,6 +98,5 @@ namespace GameClient
                 UpdateUiConnectedState(false);
             }));
         }
-
     }
 }

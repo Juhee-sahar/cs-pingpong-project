@@ -20,7 +20,7 @@ namespace GameClient
             mClient.Disconnected += OnDisconnected;
 
 
-            UpdateUiConnectedState(false);
+            UpdateUiConnectedState(false, "");
 
 
         }
@@ -28,12 +28,23 @@ namespace GameClient
 
 
         // UI 활성/비활성화
-        private void UpdateUiConnectedState(bool connected)
+        private void UpdateUiConnectedState(bool connected, string state)
         {
-            BtnServerConnect.Enabled = !connected;
-            textBoxIP.Enabled = !connected;
-            textBoxPortNum.Enabled = !connected;
-            BtnGameStart.Enabled = connected;
+            if (state == "")
+            {
+                BtnServerConnect.Enabled = !connected;
+                textBoxIP.Enabled = !connected;
+                textBoxPortNum.Enabled = !connected;
+                BtnGameStart.Enabled = connected;
+            }
+            else if (state == "game")
+            {
+                BtnServerConnect.Enabled = !connected;
+                textBoxIP.Enabled = !connected;
+                textBoxPortNum.Enabled = !connected;
+                BtnGameStart.Enabled = !connected;
+            }
+
         }
 
 
@@ -55,7 +66,7 @@ namespace GameClient
             try
             {
                 await mClient.ConnectToServerAsync();
-                UpdateUiConnectedState(true);
+                UpdateUiConnectedState(true, "");
                 MessageBox.Show("서버에 연결되었습니다.", "연결 성공", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception)
@@ -71,6 +82,7 @@ namespace GameClient
         {
             // 서버에 매칭 요청
             await mClient.SendData("[01]");
+            UpdateUiConnectedState(true, "game");
         }
 
 
@@ -84,18 +96,44 @@ namespace GameClient
                         bool isLeft = msg.Contains("LEFT");
 
                         mGameForm = new Game(mClient, isLeft);
+
+
+                        // 게임 팝업 위치 지정
+                        mGameForm.StartPosition = FormStartPosition.Manual;
+                        // Form1(FingFong) 오른쪽에 바로 붙이기
+                        int newX = this.Location.X + this.Width;  // 오른쪽 끝 좌표
+                        int newY = this.Location.Y;               // 같은 높이
+                        mGameForm.Location = new Point(newX, newY);
+
+
+                        // Game 폼이 닫힐 때 이벤트 감지
+                        mGameForm.FormClosed += GameForm_FormClosed;
+
                         mGameForm.Show();
                     }));
             }
 
 
         }
+
+
+        // Game 폼 닫힘 감지
+        private async void GameForm_FormClosed(object? sender, FormClosedEventArgs e)
+        {
+            // UI를 원래 상태로 되돌림
+            UpdateUiConnectedState(true, "");
+
+            // 서버에 알림
+            await mClient.SendData("[03]GIVEUP");
+        }
+
+
         private void OnDisconnected()
         {
             this.Invoke(new Action(() =>
             {
                 MessageBox.Show("서버 연결이 끊어졌습니다.");
-                UpdateUiConnectedState(false);
+                UpdateUiConnectedState(false, "");
             }));
         }
     }

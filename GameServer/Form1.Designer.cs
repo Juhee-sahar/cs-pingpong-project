@@ -41,7 +41,7 @@
             btnConnectServer.Location = new Point(21, 11);
             btnConnectServer.Margin = new Padding(4);
             btnConnectServer.Name = "btnConnectServer";
-            btnConnectServer.Size = new Size(340, 55);
+            btnConnectServer.Size = new Size(475, 55);
             btnConnectServer.TabIndex = 0;
             btnConnectServer.Text = "서버 연결";
             btnConnectServer.UseVisualStyleBackColor = true;
@@ -49,10 +49,10 @@
             // 
             // btnDisconnectServer
             // 
-            btnDisconnectServer.Location = new Point(369, 11);
+            btnDisconnectServer.Location = new Point(504, 11);
             btnDisconnectServer.Margin = new Padding(4);
             btnDisconnectServer.Name = "btnDisconnectServer";
-            btnDisconnectServer.Size = new Size(340, 55);
+            btnDisconnectServer.Size = new Size(465, 55);
             btnDisconnectServer.TabIndex = 1;
             btnDisconnectServer.Text = "연결 해제";
             btnDisconnectServer.UseVisualStyleBackColor = true;
@@ -71,7 +71,7 @@
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(275, 78);
+            label2.Location = new Point(352, 78);
             label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
             label2.Size = new Size(74, 20);
@@ -87,26 +87,26 @@
             textBoxClientLog.Name = "textBoxClientLog";
             textBoxClientLog.ReadOnly = true;
             textBoxClientLog.ScrollBars = ScrollBars.Vertical;
-            textBoxClientLog.Size = new Size(256, 576);
+            textBoxClientLog.Size = new Size(323, 576);
             textBoxClientLog.TabIndex = 6;
             // 
             // textBoxGameLog
             // 
             textBoxGameLog.BackColor = Color.Black;
             textBoxGameLog.ForeColor = Color.Lime;
-            textBoxGameLog.Location = new Point(275, 96);
+            textBoxGameLog.Location = new Point(352, 96);
             textBoxGameLog.Multiline = true;
             textBoxGameLog.Name = "textBoxGameLog";
             textBoxGameLog.ReadOnly = true;
             textBoxGameLog.ScrollBars = ScrollBars.Vertical;
-            textBoxGameLog.Size = new Size(435, 576);
+            textBoxGameLog.Size = new Size(617, 576);
             textBoxGameLog.TabIndex = 7;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(9F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(722, 693);
+            ClientSize = new Size(982, 693);
             Controls.Add(textBoxGameLog);
             Controls.Add(textBoxClientLog);
             Controls.Add(label2);

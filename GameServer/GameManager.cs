@@ -77,7 +77,7 @@ namespace GameServer
 
                 var session = activeGames[ip];
                 activeGames.Remove(session.PlayerLeft);
-                activeGames.Remove(session.PlayerLeft);
+                activeGames.Remove(session.PlayerRight);
             }
         }
 

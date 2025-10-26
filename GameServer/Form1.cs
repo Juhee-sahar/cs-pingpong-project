@@ -77,7 +77,7 @@ namespace GameServer
                     _ = mServer.SendToClient(opponent, "[05]WIN_BY_DISCONNECT");
 
                     mManager.DeleteActiveMatches(ip);
-                    AppendGameLog($"[{ip}] 접속 종료로 {opponent} 승리");
+                    AppendGameLog($"[연결 끊김] {ip} 접속 종료로 {opponent} 승리");
                 }
             }));
         }
@@ -89,7 +89,7 @@ namespace GameServer
             string code = msg.Substring(0, 4); // [01], [02], [03], [04] ...
 
 
-            // === [01] 매칭 요청 ===
+            // [01] 매칭 요청
             if (code == "[01]")
             {
                 AppendGameLog($"[매칭 요청] {ip}");
@@ -108,7 +108,7 @@ namespace GameServer
                     StartGameLoop(session);
                 }
             }
-            // === [02] 플레이어 입력 (UP/DOWN) ===
+            // [02] 플레이어 입력 (UP/DOWN)
             else if (code == "[02]")
             {
                 // "[02]MOVING|UP" / "[02]MOVING|DOWN" 
@@ -126,8 +126,20 @@ namespace GameServer
                 }
 
             }
+            // [03] 플레이어 포기
+            else if (code == "[03]")
+            {
+                // "[03]GIVEUP"
+                string opponent = mManager.HandleSearchOpponent(ip);
+                if (opponent != "")
+                {
+                    // 상대방에게 게임 승리 메세지 전송
+                    _ = mServer.SendToClient(opponent, "[05]WIN_BY_DISCONNECT");
 
-
+                    mManager.DeleteActiveMatches(ip);
+                    AppendGameLog($"[게임 포기] {ip} 게임 화면 닫음으로 {opponent} 승리");
+                }
+            }
         }
 
         private async void StartGameLoop(GameSession session)
@@ -188,4 +200,3 @@ namespace GameServer
         }
     }
 }
-

@@ -10,7 +10,7 @@ namespace GameSocket
 {
     public class TCPSocketClient
     {
-
+         
         // 이벤트: 수신 메시지, 연결 끊김 통지
         public event Action<string>? MessageReceived;
         public event Action? Disconnected;

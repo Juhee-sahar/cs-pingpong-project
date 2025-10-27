@@ -13,13 +13,13 @@ namespace GameServer
         public string PlayerLeftIP { get; private set; }
         public string PlayerRightIP { get; private set; }
 
-        private int screenWidth = 780;
-        private int screenHeight = 430;
+        private int screenWidth = 620;
+        private int screenHeight = 340;
 
         private int paddleWidth = 40;
         private int paddleHeight = 160;
-        private int paddleOffset = 11; // 창과의 거리
-        private int paddleSpeed = 8;
+        private int paddleOffset = 9; // 창과의 거리
+        private int paddleSpeed = 10;
 
         private int ballSize = 40; // 공의 지름 (대략 값, 필요 시 조정)
         private int ballX;
